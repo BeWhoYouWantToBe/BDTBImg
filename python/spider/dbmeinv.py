@@ -7,16 +7,13 @@ import time
 import os
 from bs4 import BeautifulSoup 
 
-start = time.clock()
-
+queue = queue.Queue()
+siteURL = 'http://www.dbmeinv.com/dbgroup/show.htm?cid={}&pager_offset={}'
 class DBMV(threading.Thread):
-    def __init__(self,queue):
+    def __init__(self,queue,pdir):
         threading.Thread.__init__(self)
         self.queue = queue
-        self.siteURL = 'http://www.dbmeinv.com/dbgroup/show.htm?cid={}&pager_offset={}'
-        for i in range(2,8):
-            url = self.siteURL.format(i,3)
-            queue.put(url)
+        self.pdir = pdir 
 
     def getPage(self,url):
         headers = {'Accept-Encoding':'gzip, deflate','Accept-Language':'zh-CN,en-US;q=0.7,en;q=0.3','Cache-Control':'max-age=0','Connection':'keep-alive','DNT':'1','Host':'www.dbmeinv.com',
@@ -51,21 +48,27 @@ class DBMV(threading.Thread):
         return path
 
     def run(self):
-        dr = ['大胸妹','美腿控','有颜值','大杂烩','小翘臀','黑丝袜']
-        for i in range(2,8):
-            path = '/home/emperor/Pictures/dbmv/' + dr[i-2] + '/'
+        while True:
+            path = '/home/emperor/Pictures/dbmv/' + self.pdir + '/' 
             url = self.queue.get() 
             soup = self.getPage(url) 
             srcs = self.getAllImg(soup) 
             print('thread {} is running'.format(threading.current_thread().name))
             self.saveImgs(srcs,path)
+            self.queue.task_done()
 
 
 def main():
-    que = queue.Queue()
+    dir = ['大胸妹','美腿控','有颜值','大杂烩','小翘臀','黑丝袜']
     for i in range(6):
-        t = DBMV(que)
+        t = DBMV(queue,dir[i])
+        t.setDaemon(True)
         t.start()
+
+    for i in range(2,8):    #逻辑错误 
+        url = siteURL.format(i,4) 
+        queue.put(url)
+
     queue.join()
 
 if __name__ =='__main__':
