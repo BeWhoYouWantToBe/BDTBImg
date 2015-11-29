@@ -9,10 +9,11 @@ from bs4 import BeautifulSoup
 
 queue = queue.Queue()
 siteURL = 'http://www.dbmeinv.com/dbgroup/show.htm?cid={}&pager_offset={}'
+dir = {'大胸妹':2,'美腿控':3,'有颜值':4,'大杂烩':5,'小翘臀':6,'黑丝袜':7}
+
 class DBMV(threading.Thread):
     def __init__(self,queue,pdir):
         threading.Thread.__init__(self)
-        self.queue = queue
         self.pdir = pdir 
 
     def getPage(self,url):
@@ -48,28 +49,23 @@ class DBMV(threading.Thread):
         return path
 
     def run(self):
-        while True:
             path = '/home/emperor/Pictures/dbmv/' + self.pdir + '/' 
-            url = self.queue.get() 
+            cateNum = dir[self.pdir]
+            url = siteURL.format(cateNum,1) 
             soup = self.getPage(url) 
             srcs = self.getAllImg(soup) 
             print('thread {} is running'.format(threading.current_thread().name))
             self.saveImgs(srcs,path)
-            self.queue.task_done()
 
 
 def main():
-    dir = ['大胸妹','美腿控','有颜值','大杂烩','小翘臀','黑丝袜']
+    pdir = ['大胸妹','美腿控','有颜值','大杂烩','小翘臀','黑丝袜']
     for i in range(6):
-        t = DBMV(queue,dir[i])
+        t = DBMV(queue,pdir[i])
         t.setDaemon(True)
         t.start()
+        t.join()
 
-    for i in range(2,8):    #逻辑错误 
-        url = siteURL.format(i,4) 
-        queue.put(url)
-
-    queue.join()
 
 if __name__ =='__main__':
     main()
