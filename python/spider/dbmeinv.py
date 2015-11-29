@@ -49,12 +49,13 @@ class DBMV(threading.Thread):
         return path
 
     def run(self):
-            path = '/home/emperor/Pictures/dbmv/' + self.pdir + '/' 
-            cateNum = dir[self.pdir]
-            url = siteURL.format(cateNum,1) 
+        print('thread {} is running'.format(threading.current_thread().name))
+        path = '/home/emperor/Pictures/dbmv/' + self.pdir + '/' 
+        cateNum = dir[self.pdir]
+        for i in range(1,5):
+            url = siteURL.format(cateNum,i) 
             soup = self.getPage(url) 
             srcs = self.getAllImg(soup) 
-            print('thread {} is running'.format(threading.current_thread().name))
             self.saveImgs(srcs,path)
 
 
