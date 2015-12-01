@@ -16,13 +16,12 @@ class proxy():
         proxies = soup.find_all('td',text=re.compile(':'))
         return proxies 
     def judge_proxies(self):
-        s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         Proxies = self.spider()
         proxies_list = []
         for proxy in Proxies:
             try:
-                s.connect(proxy.text.split(':')[0],int(proxy.text.split(';')[1]))
-                s.close()
+                proxies = {'http':'http://'+proxy.text}
+                r = requests.get('http://tieba.baidu.com',proxies=proxies,timeout=5)
                 proxies_list.append(proxy)
             except:
                 pass 
