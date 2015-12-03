@@ -2,18 +2,50 @@
 # coding=utf-8
 import re 
 import pdb
-import socket
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup 
+
+def get_sakura_ne_jp(l):
+    mode,arg1,arg2,arg3,arg4,port = l
+    mode = int(mode)
+    if mode == 1:
+        return arg1+"."+arg2+"."+arg3+"."+arg4+":"+port
+    elif mode == 2:
+        return arg4+"."+arg1+"."+arg2+"."+arg3+":"+port
+    elif mode == 3:
+        return arg3+"."+arg4+"."+arg1+"."+arg2+":"+port
+    elif mode == 4:
+        return arg2+"."+arg3+"."+arg4+"."+arg1+":"+port
 
 class proxy():
-    def __init__(self,url,dir):
-        self.url = url 
+    def __init__(self,urls,dir):
+        self.urls = urls 
         self.dir = dir 
     def spider(self):
-        r = requests.get(self.url) 
-        soup = BeautifulSoup(r.text,'lxml') 
-        proxies = soup.find_all('td',text=re.compile(':'))
+        proxies = set() 
+        for url in self.urls:
+            r = requests.get(url) 
+            soup = BeautifulSoup(r.text,'lxml') 
+            if url == self.urls[0]:
+                proxy = soup.find_all('td',text=re.compile(':')) #待完善
+                proxies.update(proxy)
+            elif url == self.urls[1]:
+                proxy = []
+                pro = soup.find_all(text=re.compile(r'\d{1,3}\.'))
+                for p in pro:
+                    proxy.append(p[1:])
+                proxy[0] = pro[0]
+                proxies.update(proxy)
+            #elif url == self.urls[2]:
+            #    proxy = soup.find_all() 
+            #    proxies.updata(proxy)    待完善
+            else:
+                args = soup.find_all(text=re.compile(r'\(\d\,'))
+                proxy = []
+                for arg in args:
+                    proxy.append(get_sakura_ne_jp(arg.lstrip("\\n<!--\nproxy(").rstrip(');\n// -->\n').split(',')    #待完善
+)) 
+                proxies.update(proxy)
         return proxies 
     def judge_proxies(self):
         Proxies = self.spider()
@@ -37,11 +69,10 @@ class proxy():
         f.close()
 
 def main():
-    url = 'http://www.cybersyndrome.net/plr.html'
+    urls = 'http://www.cybersyndrome.net/plr.html','http://www.proxylists.net','http://www.samair.ru/proxy/proxy-01.htm','http://proxylist.sakura.ne.jp'
     dir = '/home/emperor/Documents/'
-    proxies = proxy(url,dir) 
-    pdb.set_trace()
-    proxies.save_proxies()
+    proxies = proxy(urls,dir) 
+    print(proxies.spider())
 
 if __name__=='__main__':
     main()
