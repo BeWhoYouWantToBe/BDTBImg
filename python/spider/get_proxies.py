@@ -27,8 +27,9 @@ class proxy():
             r = requests.get(url) 
             soup = BeautifulSoup(r.text,'lxml') 
             if url == self.urls[0]:
-                proxy = soup.find_all('td',text=re.compile(':')) #待完善
-                proxies.update(proxy)
+                proxy = soup.find_all('td',text=re.compile(':')) 
+                for p in proxy:
+                    proxies.add(p.string)
             elif url == self.urls[1]:
                 proxy = []
                 pro = soup.find_all(text=re.compile(r'\d{1,3}\.'))
@@ -43,20 +44,23 @@ class proxy():
                 args = soup.find_all(text=re.compile(r'\(\d\,'))
                 proxy = []
                 for arg in args:
-                    proxy.append(get_sakura_ne_jp(arg.lstrip("\\n<!--\nproxy(").rstrip(');\n// -->\n').split(',')    #待完善
-)) 
+                    proxy.append(get_sakura_ne_jp(arg.lstrip("\\n<!--\nproxy(").rstrip(');\n// -->\n').split(',')).replace("'",''))
                 proxies.update(proxy)
         return proxies 
     def judge_proxies(self):
         Proxies = self.spider()
         proxies_list = []
         for proxy in Proxies:
+            proxies = {'http':'http://'+proxy}
             try:
-                proxies = {'http':'http://'+proxy.text}
-                r = requests.get('http://tieba.baidu.com',proxies=proxies,timeout=5)
+                r = requests.get('http://tieba.baidu.com',proxies=proxies,timeout=2)
+            except requests.exceptions.ConnectTimeout: 
+                print(proxy+' ERROR')
+            except :
+                print('ERROR')
+            else:
                 proxies_list.append(proxy)
-            except:
-                pass 
+                print(proxy+' OK')
         return proxies_list
                 
             
@@ -65,14 +69,14 @@ class proxy():
         path = self.dir + 'proxies' 
         f = open(path,'w')
         for proxy in proxies:
-            f.write(proxy.text+'\n') 
+            f.write(proxy+'\n') 
         f.close()
 
 def main():
     urls = 'http://www.cybersyndrome.net/plr.html','http://www.proxylists.net','http://www.samair.ru/proxy/proxy-01.htm','http://proxylist.sakura.ne.jp'
     dir = '/home/emperor/Documents/'
     proxies = proxy(urls,dir) 
-    print(proxies.spider())
+    proxies.save_proxies()
 
 if __name__=='__main__':
     main()
