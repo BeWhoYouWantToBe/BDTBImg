@@ -21,10 +21,11 @@ class proxy():
     def __init__(self,urls,dir):
         self.urls = urls 
         self.dir = dir 
+        self.headers = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'}
     def spider(self):
         proxies = set() 
         for url in self.urls:
-            r = requests.get(url) 
+            r = requests.get(url,headers=self.headers) 
             soup = BeautifulSoup(r.text,'lxml') 
             if url == self.urls[0]:
                 proxy = soup.find_all('td',text=re.compile(':')) 
@@ -37,10 +38,20 @@ class proxy():
                     proxy.append(p[1:])
                 proxy[0] = pro[0]
                 proxies.update(proxy)
-            #elif url == self.urls[2]:
-            #    proxy = soup.find_all() 
-            #    proxies.updata(proxy)    待完善
-            else:
+            elif url == self.urls[2]:
+                proxy = []
+                span = soup.find_all('span',text=re.compile(r':')) 
+                ports = requests.get('http://www.samair.ru/styles/aab0b.css',headers=self.headers) 
+                ports_soup = BeautifulSoup(ports.text,'lxml') 
+                body = ports_soup.body.string.split('\n')[:-1]
+                port = {} 
+                for b in body:
+                    temp = re.split(r'[\.:"]',b)
+                    port[temp[1]] = temp[-2]
+                for p in span:
+                    proxy.append(p.string+port[p['class'][0]])
+                proxies.update(proxy)    
+            elif url == self.urls[3]:
                 args = soup.find_all(text=re.compile(r'\(\d\,'))
                 proxy = []
                 for arg in args:
@@ -53,7 +64,7 @@ class proxy():
         for proxy in Proxies:
             proxies = {'http':'http://'+proxy}
             try:
-                r = requests.get('http://tieba.baidu.com',proxies=proxies,timeout=2)
+                r = requests.get('http://tieba.baidu.com',proxies=proxies,headers=self.headers,timeout=2)
             except requests.exceptions.ConnectTimeout: 
                 print(proxy+' ERROR')
             except :
