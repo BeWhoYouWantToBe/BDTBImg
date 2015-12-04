@@ -44,7 +44,8 @@ class proxy():
             elif url == self.urls[2]:
                 proxy = []
                 span = soup.find_all('span',text=re.compile(r':')) 
-                ports = requests.get('http://www.samair.ru/styles/aab0b.css',headers=self.headers) 
+                css_url = 'http://www.samair.ru' + soup.find('link',href=re.compile(r'/styles/\w+\.css'))['href']
+                ports = requests.get(css_url,headers=self.headers) 
                 ports_soup = BeautifulSoup(ports.text,'lxml') 
                 body = ports_soup.body.string.split('\n')[:-1]
                 port = {} 
@@ -85,7 +86,7 @@ def main():
     urls = 'http://www.cybersyndrome.net/plr.html','http://www.proxylists.net','http://www.samair.ru/proxy/proxy-01.htm','http://proxylist.sakura.ne.jp'
     dir = '/home/emperor/Documents/'
     q = Queue()
-    NUM = 10
+    NUM = 50
     proxies = proxy(urls,dir) 
     jobs = proxies.spider()
     def mult_thread():
