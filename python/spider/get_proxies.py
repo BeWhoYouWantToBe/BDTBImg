@@ -2,7 +2,9 @@
 # coding=utf-8
 import re 
 import pdb
-import requests
+import requests 
+from queue import Queue
+from threading import Thread
 from bs4 import BeautifulSoup 
 
 def get_sakura_ne_jp(l):
@@ -21,6 +23,7 @@ class proxy():
     def __init__(self,urls,dir):
         self.urls = urls 
         self.dir = dir 
+        self.proxies_list = []
         self.headers = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'}
     def spider(self):
         proxies = set() 
@@ -58,10 +61,7 @@ class proxy():
                     proxy.append(get_sakura_ne_jp(arg.lstrip("\\n<!--\nproxy(").rstrip(');\n// -->\n').split(',')).replace("'",''))
                 proxies.update(proxy)
         return proxies 
-    def judge_proxies(self):
-        Proxies = self.spider()
-        proxies_list = []
-        for proxy in Proxies:
+    def judge_proxies(self,proxy):
             proxies = {'http':'http://'+proxy}
             try:
                 r = requests.get('http://tieba.baidu.com',proxies=proxies,headers=self.headers,timeout=2)
@@ -70,25 +70,40 @@ class proxy():
             except :
                 print('ERROR')
             else:
-                proxies_list.append(proxy)
+                self.proxies_list.append(proxy)
                 print(proxy+' OK')
-        return proxies_list
                 
             
     def save_proxies(self):
-        proxies = self.judge_proxies()
         path = self.dir + 'proxies' 
         f = open(path,'w')
-        for proxy in proxies:
+        for proxy in self.proxies_list:
             f.write(proxy+'\n') 
         f.close()
 
 def main():
     urls = 'http://www.cybersyndrome.net/plr.html','http://www.proxylists.net','http://www.samair.ru/proxy/proxy-01.htm','http://proxylist.sakura.ne.jp'
     dir = '/home/emperor/Documents/'
+    q = Queue()
+    NUM = 10
     proxies = proxy(urls,dir) 
+    jobs = proxies.spider()
+    def mult_thread():
+        while True:
+            proxy = q.get()
+            proxies.judge_proxies(proxy)
+            q.task_done()
+    for i in range(NUM):
+        t = Thread(target=mult_thread)
+        t.setDaemon(True) 
+        t.start() 
+    for p in jobs:
+        q.put(p)
+    q.join()
     proxies.save_proxies()
+    
 
+            
 if __name__=='__main__':
     main()
 
