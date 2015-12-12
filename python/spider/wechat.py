@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
 import re 
-import pdb 
+import os
 import time
 import requests 
-import random
+import random 
 from bs4 import BeautifulSoup 
 
 class WeChat():
@@ -29,9 +29,15 @@ class WeChat():
             self.proxies.append(p.strip())
 
     def get_gzh_url(self):
-        r = requests.get(self.serach_url+self.name,cookies=self.cookies,headers=self.headers)
-        soup = BeautifulSoup(r.text,'lxml') 
-        url = soup.find('div',class_='wx-rb bg-blue wx-rb_v1 _item')['href']
+        while True:
+            r = requests.get(self.serach_url+self.name,cookies=self.cookies,headers=self.headers)
+            soup = BeautifulSoup(r.text,'lxml') 
+            try:
+                url = soup.find('div',class_='wx-rb bg-blue wx-rb_v1 _item')['href']
+                break
+            except TypeError:
+                print('请输入验证码'+self.serach_url+self.name)
+                time.sleep(20)
         return 'http://weixin.sogou.com' + url 
 
     def get_article_url(self,gzh_url):
@@ -46,8 +52,9 @@ class WeChat():
             except:
                 tag = False
             else:
-                if r.url != gzh_page:
-                    tag = False
+                if 'antispider' in r.url:
+                    print('请输入验证码'+r.url)
+                    time.sleep(20)
                     continue
                 articleUrl = re.compile(r'(?<=\[)/websearch/art.jsp.+?(?=\])').findall(r.text)
                 for url in articleUrl:
@@ -55,16 +62,47 @@ class WeChat():
                     article_url.append(url)
                 i += 1
                 time.sleep(1)
-        return article_url
+        return article_url 
+    def get_articles(self,article_url):
+        for article in article_url:
+            self.save_article(article) 
+            time.sleep(2) 
+
+    def mkdir(self):
+        path = '/home/emperor//Documents/wechatgzh/' + self.name + '/'
+        is_exist = os.path.exists(path)
+        if not is_exist:
+            os.makedirs(path) 
+
+
+    def save_article(self,article_page):
+        while True:
+            r = requests.get(article_page,cookies=self.cookies)
+            soup = BeautifulSoup(r.text,'lxml')
+            try:
+                title = soup.find('h2',{'id':'activity-name'}).string.strip()
+                break
+            except AttributeError: 
+                print('请输入验证码'+article_page) 
+                self.cookies = random.choice(self.cookies_pool)
+                time.sleep(20) 
+            except:
+                pass
+            
+        f = open('/home/emperor/Documents/wechatgzh/'+self.name+'/'+title,'w')
+        f.write(r.text)
+        f.close()
+
+        
+        
 
 def main():
     wechat = WeChat('我是公务员')
-    pdb.set_trace()
-    wechat.get_cookies()
+    wechat.mkdir()
+    wechat.get_proxies()
     gzh_url = wechat.get_gzh_url() 
-    print(gzh_url)
     article_url = wechat.get_article_url(gzh_url)
-    print(article_url)
+    wechat.get_articles(article_url)
 
 
 if __name__ == '__main__':
