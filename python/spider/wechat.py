@@ -6,8 +6,6 @@ import pdb
 import time
 import requests 
 import random 
-from queue import Queue 
-from threading import Thread
 from bs4 import BeautifulSoup 
 
 def get_proxies():
@@ -20,7 +18,7 @@ def get_proxies():
 class WeChat():
     def __init__(self,name):
         self.name = name 
-        self.proxies = {'http:':'http://'}
+        self.proxies = {} 
         self.serach_url = 'http://weixin.sogou.com/weixin?query='   
         self.cookies = {'SUID':'E2D1803D2524920A00000000564F2FEE','SUV':'1448030190451248','SNUID':'47742598A5A18241C820FCBAA52BF8E3'}
         self.headers = {'User-Agent':'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
@@ -52,7 +50,7 @@ class WeChat():
                 if 'antispider' in r.url:
                     self.yzm()
                     continue
-                elif r.url == 'http://weixin.sogou.com/':
+                elif 'class="logo"' in r.text:
                     tag = False 
                     continue 
                 articleUrl = re.compile(r'(?<=\[)/websearch/art.jsp.+?(?=\])').findall(r.text)
@@ -73,7 +71,8 @@ class WeChat():
             os.makedirs(path) 
 
 
-    def save_article(self,article_page):
+    def save_article(self,article_page,proxy):
+        self.proxies = {'http':'http://'+proxy} 
         while True:
             try:
                 r = requests.get(article_page,cookies=self.cookies,proxies=self.proxies,timeout=3)
@@ -86,13 +85,13 @@ class WeChat():
         f.write(r.text)
         f.close()
         print(title+'   已经保存完成')
-        time.sleep(5)
+        time.sleep(1)
 
     def yzm(self):
         proxies = get_proxies()
         if self.proxies in proxies:
             proxies.remove(self.proxies)
-        self.proxies['http'] = 'http://' + random.choice(proxies)
+        self.proxies = {'http':'http://' + random.choice(proxies)}
         url = 'http://weixin.sogou.com/weixin?query=' + random.choice('abcdefghijklmnopqrstuvwxyz')
         r = requests.get(url)
         try:
@@ -102,28 +101,16 @@ class WeChat():
 
 
 def main():
-    q = Queue()
-    NUM = 10
+    proxies = get_proxies()
     wechat = WeChat('我是公务员')
     wechat.yzm()
     wechat.mkdir()
     pdb.set_trace()
-    gzh_url = wechat.get_gzh_url() 
+    gzh_url = wechat.get_gzh_url()
     article_url = wechat.get_article_url(gzh_url)
-    def mult_thread():
-        while True:
-            url = q.get()
-            wechat.save_article(url)
-            q.task_done()
-    for i in range(NUM):
-        t = Thread(target=mult_thread) 
-        t.setDaemon(True)
-        t.start()
-    for u in article_url:
-        q.put(u)
-    q.join()
-
-
+    for url in article_url:
+        proxy = random.choice(proxies)
+        wechat.save_article(url,proxy)
 
 
 if __name__ == '__main__':
