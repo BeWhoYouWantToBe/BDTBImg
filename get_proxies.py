@@ -37,14 +37,17 @@ class proxy():
     def judge_proxies(self,proxy):
             proxies = {'http':'http://'+proxy}
             try:
-                r = requests.get('http://www.meizitu.com',proxies=proxies,headers=self.headers,timeout=8)
+                r = requests.get('http://www.meizitu.com/a/5217.html',proxies=proxies,headers=self.headers,timeout=3)
             except requests.exceptions.ConnectTimeout: 
                 print(proxy+'Timeout')
             except :
                 print('ERROR')
             else:
-                self.proxies_list.append(proxy)
-                print(proxy+' OK')
+                if len(r.text)== 17399 :
+                    self.proxies_list.append(proxy)
+                    print(proxy+' OK')
+                else:
+                    print('ERROR')
 
     def save_proxies(self):
         path = self.dir + 'proxies' 
@@ -72,7 +75,8 @@ def main():
     q.join()
     if __name__=='__main__':
         proxies.save_proxies()
-    return proxies.proxies_list
+    else:
+        return proxies.proxies_list
 
 
 if __name__=='__main__':
