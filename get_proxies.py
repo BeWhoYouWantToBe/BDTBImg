@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 class proxy():
     def __init__(self):
-        self.urls = ['http://www.kuaidaili.com/proxylist/','http://www.kxdaili.com/ipList/{}.html#ip']
+        self.urls = ['http://www.kuaidaili.com/free/','http://www.kxdaili.com/dailiip/','http://www.xicidaili.com/','http://ip84.com/gn/','http://www.nianshao.me/?page=','http://www.swei360.com/free/?stype={}&page=','http://www.004388.com/','http://www.bigdaili.com/dailiip/','http://www.mayidaili.com/free/anonymous/高匿/']
         self.dir = '/home/king/Documents/'
         self.proxies_list = []
         self.headers = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'}
@@ -16,30 +16,105 @@ class proxy():
     def get_proxies(self):
         proxies = set() 
         for url in self.urls:
-            if url == self.urls[0] or url == self.urls[1]:
-                for i in range(1,11):
+            if url == self.urls[0] or url == self.urls[1] or url == self.urls[2] or url == self.urls[5] or url == self.urls[7]:
+                for i in range(1,7):
                     if url == self.urls[0]:
-                        purl = url + str(i)
+                        inpurl = url + 'inha/' + str(i)
+                        outpurl = url + 'outha/' + str(i)
+                        j = 0
+                    elif url == self.urls[1] or url == self.urls[7]:
+                        inpurl = url + '1/'  + '{}.html#ip'.format(i)
+                        outpurl = url + '3/' + '{}.html#ip'.format(i)
+                        j = 1
+                    elif url == self.urls[2]:
+                        inpurl = url + 'nn/' + str(i)
+                        outpurl = url + 'wn/' + str(i)
+                        j = 2
+                    elif url == self.urls[5]:
+                        inpurl = url.format(1) + str(i) 
+                        outpurl = url.format(3) + str(i)
+                        j = 5
+                        
+                    inr = requests.get(inpurl,headers=self.headers)
+                    outr = requests.get(outpurl,headers=self.headers)
+                    insoup = BeautifulSoup(inr.text,'lxml')
+                    outsoup = BeautifulSoup(outr.text,'lxml')
+                    try:
+                        trs = insoup.find_all('tr')[1:] 
+                    except:
+                        print('抓取代理失败')
+                    try:
+                        outtrs = outsoup.find_all('tr')[1:]
+                    except:
+                        print('抓取代理失败')
                     else:
-                        purl = url.format(i)
-                    r = requests.get(purl,headers=self.headers)
+                        trs.extend(outtrs) 
+                    if j == 2:
+                        for tr in trs:
+                            proxy = tr.contents[5].string + ':' +  tr.contents[7].string 
+                            proxies.add(proxy)
+                    else:
+                        for tr in trs:
+                            proxy = tr.contents[1].string + ':' + tr.contents[7].string
+                            proxies.add(proxy)
+            elif url == self.urls[3] or url ==self.urls[4]:
+                for i in range(1,7):
+                    url = url + str(i)
+                    r = requests.get(url,headers=self.headers)
                     soup = BeautifulSoup(r.text,'lxml')
                     try:
-                        trs = soup.find_all('tr')[1:] 
+                        trs = soup.find_all('tr')[1:]
                     except:
                         print('抓取代理失败')
                     else:
                         for tr in trs:
-                            proxy = tr.contents[1].string + ':' +  tr.contents[3].string
+                            proxy = tr.contents[1].string + ':' + tr.contents[7].string 
+                            proxies.add(proxy) 
+            elif url == self.urls[6]:
+                for i in range(1,7):
+                    inpurl = url + 'ip/index_{}.html'.format(i)
+                    outpurl = url + 'ipgw/index_{}.html'.format(i) 
+                        
+                    inr = requests.get(inpurl,headers=self.headers)
+                    outr = requests.get(outpurl,headers=self.headers)
+                    insoup = BeautifulSoup(inr.text,'lxml')
+                    outsoup = BeautifulSoup(outr.text,'lxml')
+                    try:
+                        trs = insoup.find_all('tr')[7:-2] 
+                    except:
+                        print('抓取代理失败')
+                    try:
+                        outtrs = outsoup.find_all('tr')[7:-2]
+                    except:
+                        print('抓取代理失败')
+                    else:
+                        trs.extend(outtrs) 
+                        for tr in trs:
+                            proxy = tr.contents[3].string + ':' + tr.contents[5].string
                             proxies.add(proxy)
+            elif url == self.urls[8]:
+                for i in range(50):
+                    url = url + str(i)
+                    r = requests.get(url,headers=self.headers)
+                    soup = BeautifulSoup(r.text,'lxml')
+                    try:
+                        trs = soup.find_all('tr')[1:]
+                    except:
+                        print('抓取代理失败')
+                        for tr in trs:
+                            proxy = tr.contents[1].string + ':' + tr.contents[3].span.string 
+                            proxies.add(proxy)
+
+
+
         return proxies 
 
     def judge_proxies(self,proxy):
             proxies = {'http':'http://'+proxy}
             try:
-                r = requests.get('http://www.meizitu.com/a/5217.html',proxies=proxies,headers=self.headers,timeout=3)
+                r = requests.get('http://www.meizitu.com/a/5217.html',proxies=proxies,headers=self.headers,timeout=5)
             except requests.exceptions.ConnectTimeout: 
-                print(proxy+'Timeout')
+                print(proxy+' Timeout')
             except :
                 print('ERROR')
             else:
