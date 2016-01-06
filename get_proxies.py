@@ -34,8 +34,10 @@ class proxy():
                         inpurl = url.format(1) + str(i) 
                         outpurl = url.format(3) + str(i)
                         j = 5
-                        
-                    inr = requests.get(inpurl,headers=self.headers)
+                    try:
+                        inr = requests.get(inpurl,headers=self.headers)
+                    except:
+                        break
                     outr = requests.get(outpurl,headers=self.headers)
                     insoup = BeautifulSoup(inr.text,'lxml')
                     outsoup = BeautifulSoup(outr.text,'lxml')
@@ -60,7 +62,10 @@ class proxy():
             elif url == self.urls[3] or url ==self.urls[4]:
                 for i in range(1,7):
                     url = url + str(i)
-                    r = requests.get(url,headers=self.headers)
+                    try:
+                        r = requests.get(url,headers=self.headers)
+                    except:
+                        break
                     soup = BeautifulSoup(r.text,'lxml')
                     try:
                         trs = soup.find_all('tr')[1:]
@@ -74,9 +79,11 @@ class proxy():
                 for i in range(1,7):
                     inpurl = url + 'ip/index_{}.html'.format(i)
                     outpurl = url + 'ipgw/index_{}.html'.format(i) 
-                        
-                    inr = requests.get(inpurl,headers=self.headers)
-                    outr = requests.get(outpurl,headers=self.headers)
+                    try:    
+                        inr = requests.get(inpurl,headers=self.headers)
+                        outr = requests.get(outpurl,headers=self.headers)
+                    except:
+                        break
                     insoup = BeautifulSoup(inr.text,'lxml')
                     outsoup = BeautifulSoup(outr.text,'lxml')
                     try:
@@ -95,7 +102,10 @@ class proxy():
             elif url == self.urls[8]:
                 for i in range(50):
                     url = url + str(i)
-                    r = requests.get(url,headers=self.headers)
+                    try:
+                        r = requests.get(url,headers=self.headers)
+                    except:
+                        break
                     soup = BeautifulSoup(r.text,'lxml')
                     try:
                         trs = soup.find_all('tr')[1:]
@@ -112,17 +122,23 @@ class proxy():
     def judge_proxies(self,proxy):
             proxies = {'http':'http://'+proxy}
             try:
-                r = requests.get('http://www.meizitu.com/a/5217.html',proxies=proxies,headers=self.headers,timeout=5)
-            except requests.exceptions.ConnectTimeout: 
+                r = requests.get('http://www.icanhazip.com',proxies=proxies,headers=self.headers,timeout=6)
+            except requests.exceptions.ConnectTimeout:
                 print(proxy+' Timeout')
-            except :
-                print('ERROR')
+            except:
+                print("ERROR")
             else:
-                if len(r.text)== 17399 :
-                    self.proxies_list.append(proxy)
-                    print(proxy+' OK')
-                else:
-                    print('ERROR')
+                if r.text.strip() == proxy.split(':')[0]:
+                    try:
+                        r = requests.get('http://mp.weixin.qq.com/s?__biz=MzA4MjYwODg0OQ==&mid=400800258&idx=1&sn=deb6bd1efcfc5ba2a3fcd422c3a54e75&3rd=MzA3MDU4NTYzMw==&scene=6#rd',proxies=proxies,headers=self.headers,timeout=6)
+                    except requests.exceptions.ConnectTimeout:
+                        print(proxy+' Timeout')
+                    except:
+                        print('ERROR')
+                    else:
+                        if len(r.text) == 31400:
+                            self.proxies_list.append(proxy)
+                            print(proxy+' OK')
 
     def save_proxies(self):
         path = self.dir + 'proxies' 
@@ -133,7 +149,7 @@ class proxy():
 
 def main():
     q = Queue()
-    NUM = 30
+    NUM = 60
     proxies = proxy() 
     jobs = proxies.get_proxies()
     def mult_thread():
