@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-# coding=utf-8
-import pdb
+# coding=utf-8 
+import gevent.monkey
+gevent.monkey.patch_socket()
+
+import gevent 
 import requests 
-from queue import Queue
-from threading import Thread
-from bs4 import BeautifulSoup 
+#from queue import Queue 
+from gevent.queue import Queue
+#from threading import Thread
+from bs4 import BeautifulSoup  
 
 class proxy():
     def __init__(self):
@@ -100,6 +104,7 @@ class proxy():
                             proxy = tr.contents[3].string + ':' + tr.contents[5].string
                             proxies.add(proxy)
             elif url == self.urls[8]:
+                '''               
                 for i in range(50):
                     url = url + str(i)
                     try:
@@ -111,9 +116,39 @@ class proxy():
                         trs = soup.find_all('tr')[1:]
                     except:
                         print('抓取代理失败')
-                        for tr in trs:
-                            proxy = tr.contents[1].string + ':' + tr.contents[3].span.string 
-                            proxies.add(proxy)
+                    for tr in trs:
+                        proxy = tr.contents[1].string + ':' + tr.contents[3].span.string 
+                        proxies.add(proxy) 
+                '''
+
+                q = Queue()
+                NUM = 40 
+                jobs = [url + str(i) for i in range(200)]
+                def worker():
+                    while not q.empty():
+                        url = q.get() 
+                        try:
+                            r = requests.get(url,headers=self.headers) 
+                        except:
+                            pass 
+                        soup = BeautifulSoup(r.text,'lxml')
+                        try:
+                            trs = soup.find_all('tr')[1:] 
+                        except:
+                            print('抓取代理失败')
+                        else:
+                            for tr in trs:
+                                proxy = tr.contents[1].string + ':' + tr.contents[3].span.string 
+                                proxies.add(proxy)
+                        gevent.sleep(0)
+
+                def boss():
+                    for job in jobs:
+                        q.put_nowait(job)
+
+                gevent.spawn(boss).join() 
+                threads = [gevent.spawn(worker) for i in range(NUM)]
+                gevent.joinall(threads)
 
 
 
@@ -136,7 +171,7 @@ class proxy():
                     except:
                         print('ERROR')
                     else:
-                        if len(r.text) == 31400:
+                        if len(r.text) == 30945:
                             self.proxies_list.append(proxy)
                             print(proxy+' OK')
 
@@ -148,28 +183,57 @@ class proxy():
         f.close()
 
 def main():
+#    q = Queue()
+#   NUM = 60
+#    proxies = proxy() 
+#    jobs = proxies.get_proxies()
+#    def mult_thread():
+#        while True:
+#            proxy = q.get()
+#            proxies.judge_proxies(proxy)
+#            q.task_done()
+#    for i in range(NUM):
+#        t = Thread(target=mult_thread)
+#        t.setDaemon(True) 
+#        t.start() 
+#    for p in jobs:
+#        q.put(p)
+#    q.join()
+#    if __name__=='__main__':
+#        proxies.save_proxies()
+#    else:
+#        return proxies.proxies_list
     q = Queue()
     NUM = 60
-    proxies = proxy() 
+    proxies = proxy()   
     jobs = proxies.get_proxies()
-    def mult_thread():
-        while True:
-            proxy = q.get()
-            proxies.judge_proxies(proxy)
-            q.task_done()
-    for i in range(NUM):
-        t = Thread(target=mult_thread)
-        t.setDaemon(True) 
-        t.start() 
-    for p in jobs:
-        q.put(p)
-    q.join()
-    if __name__=='__main__':
-        proxies.save_proxies()
+
+    def worker():
+        while not q.empty():
+            job = q.get() 
+            proxies.judge_proxies(job)
+            gevent.sleep(0)
+
+    def boss():
+        for job in jobs:
+            q.put_nowait(job)
+
+    gevent.spawn(boss).join() 
+
+    threads = [gevent.spawn(worker) for i in range(NUM)]
+    gevent.joinall(threads)
+    print('共获得{}个代理'.format(len(proxies.proxies_list)))
+
+    if __name__ == '__main__':
+        proxies.save_proxies() 
     else:
-        return proxies.proxies_list
+        return proxies.proxies_list 
 
 
+            
+            
+
+    
 if __name__=='__main__':
     main()
 
